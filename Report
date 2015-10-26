@@ -1,0 +1,39 @@
+What is asked to be done
+-------------------------------------------------------------
+At the end of the project every group is expected to 
+1) give a demo 
+2) submit code and associated data 
+3) along with a report.
+E. For any further clarification, contact TAs. 
+Kamlesh (eMail: ktiwari@cse.iitk.ac.in, Mob: 9415769698)
+-------------------------------------------------------------
+[6] Title: 
+Chat server using UDP/FTP   [team size 3]
+Develop a chat application that uses UDP and FTP for file sharing. It should be possible to encrypt/decrypt files at the sender/receiver
+===============================================================
+Question to be asked:
+1. Single user multiuser 
+=> It would be a multiuser program.
+2. File transfer using FTP then TCP will be use.
+=> Yes. But normal message should be sent using UDP.
+3. User limit if the chat prohram is multiuser 
+=> As of now we are making it for 10 simultaneous user which can interact with each other.
+4. 
+
+
+=================================================================
+Server: The server is like a middle man among clients. It can queue up to 10 clients. The server broadcasts any messages from a client to the other participants. So, the server provides a sort of chatting room.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
