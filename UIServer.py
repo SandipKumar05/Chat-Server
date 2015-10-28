@@ -30,7 +30,7 @@ def connect_ftp():
     ftp = FTP()
     ftp.connect(SERVER, PORT)
     ftp.login(USER, PASS)
-    
+
     return ftp
 
 def upload_file(ftp_connetion, upload_file_path):
@@ -38,27 +38,27 @@ def upload_file(ftp_connetion, upload_file_path):
     #Open the file
     try:
         upload_file = open(upload_file_path, 'r')
-        
+
         #get the name
         path_split = upload_file_path.split('/')
         final_file_name = path_split[len(path_split)-1]
-    
+
         #transfer the file
         print('Uploading ' + final_file_name + '...')
-        
+
         if BINARY_STORE:
             ftp_connetion.storbinary('STOR '+ final_file_name, upload_file)
         else:
             #ftp_connetion.storlines('STOR ' + final_file_name, upload_file, print_line)
             ftp_connetion.storlines('STOR '+ final_file_name, upload_file)
-            
+
         print('Upload finished.')
         return
-        
+
     except IOError:
         print ("No such file or directory... passing to next file")
 
-    
+
 #Take all the files and upload all
 ftp_conn = connect_ftp()
 
@@ -83,7 +83,7 @@ def sendFile():
     message = "1^"+filename[-1]
     # print message
     serverSocket.sendto(message,CLIENT_ADDRESS)
-    chatBox("File sent "+filename[-1]) 
+    chatBox("File sent "+filename[-1])
 
 
 def sendMessage(event):
@@ -98,7 +98,7 @@ def recievedMessage():
         splitMessage = message.split('^')
         if splitMessage[0]=="1":
             fileName = splitMessage[1]
-            chatBox("He: Recieved file :" + fileName) 
+            chatBox("He: Recieved file :" + fileName)
             retrieveFile(fileName)
         else:
             chatBox("He: " + message)
@@ -140,7 +140,7 @@ entry1.bind("<Return>", sendMessage)
 # splitMessage = first_message.split('^')
 # if splitMessage[0]=="1":
 #     fileName = splitMessage[1]
-#     chatBox("He: Recieved file :" + fileName) 
+#     chatBox("He: Recieved file :" + fileName)
 #     retrieveFile(fileName)
 # else:
 #     chatBox("He: " + message)
