@@ -9,7 +9,7 @@ import pyaudio
 import wave
 import threading
 import time
-
+import os
 ########### FILE UPLOAD ###########3
 
 ########### MODIFY ########################
@@ -111,34 +111,34 @@ def sendMessage(event):
         chatBox("Connection not yet established")
 
 def recievedMessage():
-	    while 1:
-	        global SERVER_ADDRESS
-	        if call_flag and CALL == 0:
-		        message = clientSocket.recv(1024)
-		        splitMessage = message.split('^')
-		        if splitMessage[0]=="1":
-		            fileName = splitMessage[1]
-		            chatBox("Recieved file :" + fileName)
-		            retrieveFile(fileName)
-		        elif splitMessage[0]=="2":
-		            chatBox(splitMessage[1])
-		            global connection_done
-		            connection_done = True
-		            entry2.config(state=DISABLED)
-		        elif splitMessage[0]=="3":
-		            if askyesno('Incoming Call', 'Do you want to receive?'):
-		            	message = "5^accept call"
-		            	clientSocket.send(message)
-		                call1()
-		            else:
-		                message = "6^end call"
-		                clientSocket.send(message)
-		        elif splitMessage[0] == "6":
-		        	chatBox("call rejected")
-		        elif splitMessage[0] == "5":
-		        	call1()
-		        else:
-		        	chatBox("He: " + message)
+        while 1:
+            global SERVER_ADDRESS
+            if call_flag and CALL == 0:
+                message = clientSocket.recv(1024)
+                splitMessage = message.split('^')
+                if splitMessage[0]=="1":
+                    fileName = splitMessage[1]
+                    chatBox("Recieved file :" + fileName)
+                    retrieveFile(fileName)
+                elif splitMessage[0]=="2":
+                    chatBox(splitMessage[1])
+                    global connection_done
+                    connection_done = True
+                    entry2.config(state=DISABLED)
+                elif splitMessage[0]=="3":
+                    if askyesno('Incoming Call', 'Do you want to receive?'):
+                        message = "5^accept call"
+                        clientSocket.send(message)
+                        call1()
+                    else:
+                        message = "6^end call"
+                        clientSocket.send(message)
+                elif splitMessage[0] == "6":
+                    chatBox("call rejected")
+                elif splitMessage[0] == "5":
+                    call1()
+                else:
+                    chatBox("He: " + message)
 
 def chatBox(text):
     listbox.insert(END, text)
@@ -161,10 +161,11 @@ def setIP (event):
         clientSocket.send(message)
         connection_done = True
         chatBox("Connected to " + ipaddress)
+        entry2.config(state=DISABLED)
         try:
-        	thread.start_new_thread(recievedMessage,())
+            thread.start_new_thread(recievedMessage,())
         except:
-			print "Error: unable to start thread"
+            print "Error: unable to start thread"
     except Exception, e :
         chatBox("Unknown service")
     entry2.delete(0, END)
@@ -229,22 +230,22 @@ def call():
 
 
 def call1():
-	entry1.config(state=DISABLED)
-	global call_flag
-	call_flag = False
-	global CALL
-	CALL=1
-	threading.Thread(target=call_send).start()
-	threading.Thread(target=call_recv).start()
+    entry1.config(state=DISABLED)
+    global call_flag
+    call_flag = False
+    global CALL
+    CALL=1
+    threading.Thread(target=call_send).start()
+    threading.Thread(target=call_recv).start()
 
 
 def end_call1():
-	global CALL
-	CALL = 0
-	chatBox("* call ended")
-	global call_flag
-	call_flag = True
-	entry1.config(state="normal")
+    global CALL
+    CALL = 0
+    chatBox("* call ended")
+    global call_flag
+    call_flag = True
+    entry1.config(state="normal")
 
 def end_call():
     global CALL
@@ -258,83 +259,86 @@ def end_call():
     entry1.config(state="normal")
 
 def call_send():
-	# s.connect((HOST, PORT))
-	CHUNK = 1024
-	FORMAT = pyaudio.paInt16
-	CHANNELS = 1
-	RATE = 44100
-	RECORD_SECONDS = 20
+    # s.connect((HOST, PORT))
+    CHUNK = 1024
+    FORMAT = pyaudio.paInt16
+    CHANNELS = 1
+    RATE = 44100
+    RECORD_SECONDS = 20
 
-	p = pyaudio.PyAudio()
+    p = pyaudio.PyAudio()
 
-	stream = p.open(format=FORMAT,
-	                channels=CHANNELS,
-	                rate=RATE,
-	                input=True,
-	                frames_per_buffer=CHUNK)
+    stream = p.open(format=FORMAT,
+                    channels=CHANNELS,
+                    rate=RATE,
+                    input=True,
+                    frames_per_buffer=CHUNK)
 
-	chatBox("* call start")
+    chatBox("* call start")
 
-	frames = []
+    frames = []
 
-	while CALL==1:
-	 data  = stream.read(CHUNK)
-	 frames.append(data)
-	 clientSocket.sendall(data)
-	 if CALL == 0:
-	 	return
-	
+    while CALL==1:
+     data  = stream.read(CHUNK)
+     frames.append(data)
+     clientSocket.sendall(data)
+     if CALL == 0:
+        return
+    
 
-	stream.stop_stream()
-	stream.close()
-	p.terminate()
+    stream.stop_stream()
+    stream.close()
+    p.terminate()
 
 
 
 
 def call_recv():
-	CHUNK = 1024
-	FORMAT = pyaudio.paInt16
-	CHANNELS = 1
-	RATE = 44100
-	RECORD_SECONDS = 20
-	WAVE_OUTPUT_FILENAME = "server_output.wav"
-	WIDTH = 2
-	frames = []
+    CHUNK = 1024
+    FORMAT = pyaudio.paInt16
+    CHANNELS = 1
+    RATE = 44100
+    RECORD_SECONDS = 20
+    WAVE_OUTPUT_FILENAME = "server_output.wav"
+    WIDTH = 2
+    frames = []
 
-	p = pyaudio.PyAudio()
-	stream = p.open(format=p.get_format_from_width(WIDTH),
-	                channels=CHANNELS,
-	                rate=RATE,
-	                output=True,
-	                frames_per_buffer=CHUNK)
-	data = clientSocket.recv(1024)
-	while CALL==1:
-	    stream.write(data)
-	    data = clientSocket.recv(1024)
-	    splitMessage = data.split('^')
-	    if splitMessage[0] == "4":
-	    	end_call1()
-	    	return
-	    frames.append(data)
-	    if CALL == 0:
-	 		return
+    p = pyaudio.PyAudio()
+    stream = p.open(format=p.get_format_from_width(WIDTH),
+                    channels=CHANNELS,
+                    rate=RATE,
+                    output=True,
+                    frames_per_buffer=CHUNK)
+    data = clientSocket.recv(1024)
+    while CALL==1:
+        stream.write(data)
+        data = clientSocket.recv(1024)
+        splitMessage = data.split('^')
+        if splitMessage[0] == "4":
+            end_call1()
+            return
+        frames.append(data)
+        if CALL == 0:
+            return
 
 
-	wf = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
-	wf.setnchannels(CHANNELS)
-	wf.setsampwidth(p.get_sample_size(FORMAT))
-	wf.setframerate(RATE)
-	wf.writeframes(b''.join(frames))
-	wf.close()
+    wf = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
+    wf.setnchannels(CHANNELS)
+    wf.setsampwidth(p.get_sample_size(FORMAT))
+    wf.setframerate(RATE)
+    wf.writeframes(b''.join(frames))
+    wf.close()
 
-	stream.stop_stream()
-	stream.close()
-	p.terminate()
+    stream.stop_stream()
+    stream.close()
+    p.terminate()
 
+
+def new_chat():
+    os.system("python UIClient.py &")
 ########## Socket Connection ###############
 serverName = ''
-serverPort = 12011
+serverPort = 12006
 clientSocket = socket(AF_INET,SOCK_STREAM)
 
 
@@ -363,6 +367,9 @@ button3.pack(side=RIGHT)
 
 button4 = Button(frame1, text ="End",command= end_call,bg = '#df2620')
 button4.pack(side=RIGHT)
+
+button5 = Button(frame, text ="New Chat",command= new_chat,bg = '#0b2fee')
+button5.pack(side=TOP,fill=X)
 
 message = StringVar()
 entry1 = Entry(window,text = message)

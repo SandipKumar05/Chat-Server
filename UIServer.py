@@ -9,7 +9,10 @@ import pyaudio
 import wave
 import threading
 import socket
-import time 
+import time
+import os
+# os.system("python UIServer.py &")
+
 ########### FILE UPLOAD ###########3
 
 ########### MODIFY ########################
@@ -129,7 +132,7 @@ def recievedMessage():
 	            chatBox(splitMessage[1])
 	            global connection_done
 	            connection_done = True
-	            entry2.config(state=DISABLED)
+	            # entry2.config(state=DISABLED)
 	        elif splitMessage[0]=="3":
 	            if askyesno('Incoming Call', 'Do you want to receive?'):
 	            	message = "5^accept call"
@@ -154,22 +157,22 @@ def chatBox(text):
     entry1.delete(0, END)
     return
 
-def setIP (event):
-    ipaddress = entry2.get()
-    global serverName
-    global connection_done
-    global CLIENT_ADDRESS
-    serverName = ipaddress
-    CLIENT_ADDRESS = (serverName,serverPort)
-    try:
-        conn.connect(CLIENT_ADDRESS)
-        message = "2^Someone has connected to you"
-        conn.send(message)
-        connection_done = True
-        chatBox("Connected to " + ipaddress)
-    except Exception, e :
-        chatBox("Unknown service")
-    entry2.delete(0, END)
+# def setIP (event):
+#     ipaddress = entry2.get()
+#     global serverName
+#     global connection_done
+#     global CLIENT_ADDRESS
+#     serverName = ipaddress
+#     CLIENT_ADDRESS = (serverName,serverPort)
+#     try:
+#         conn.connect(CLIENT_ADDRESS)
+#         message = "2^Someone has connected to you"
+#         conn.send(message)
+#         connection_done = True
+#         chatBox("Connected to " + ipaddress)
+#     except Exception, e :
+#         chatBox("Unknown service")
+#     entry2.delete(0, END)
 
 def start_record ():
     global RECORD_SECONDS
@@ -222,7 +225,7 @@ def stop_record():
     RECORD_SECONDS = 0
     send_audio('output.wav')
 
-def send_audio():
+def send_audio(audio_file):
     upload_file(ftp_conn,audio_file)
     message = "1^"+audio_file
     conn.send(message)
@@ -334,9 +337,11 @@ def call_recv():
 	stream.close()
 	p.terminate()
 
+def new_chat():
+    os.system("python UIClient.py &")
 ########## Socket Connection ###############
 serverName = ''
-serverPort = 12011
+serverPort = 12006
 
 # s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
 # s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -374,6 +379,8 @@ button3.pack(side=RIGHT)
 button4 = Button(frame1, text ="End",command= end_call,bg = '#df2620')
 button4.pack(side=RIGHT)
 
+button5 = Button(frame, text ="New Chat",command= new_chat,bg = '#0b2fee')
+button5.pack(side=TOP,fill=X)
 
 message = StringVar()
 entry1 = Entry(window,text = message)
@@ -387,13 +394,13 @@ listbox = Listbox(window, width = 50,yscrollcommand=scrollbar.set)
 
 
 
-label1 = Label( frame, text="Connect to IP address : " , bg = "#a3dfdd" )
-label1.pack(fill = X, side = LEFT, ipadx=20)
+# label1 = Label( frame, text="Connect to IP address : " , bg = "#a3dfdd" )
+# label1.pack(fill = X, side = LEFT, ipadx=20)
 
-ipaddress = StringVar()
-entry2 = Entry(frame,text = ipaddress,width=30)
-entry2.pack(side=LEFT)
-entry2.bind("<Return>", setIP)
+# ipaddress = StringVar()
+# entry2 = Entry(frame,text = ipaddress,width=30)
+# entry2.pack(side=LEFT)
+# entry2.bind("<Return>", setIP)
 
 ############### Start recieved message as thread ########3
 try:
