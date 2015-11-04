@@ -89,28 +89,32 @@ def retrieveFile(list):
         showwarning('File downloaded', 'you have recieved a file')
     else:
         showinfo('File Download Cancel', 'Download quit')
+
 def retrieveAudio(filename):
     ftp = FTP('webhome.cc.iitk.ac.in')
     ftp.login(user='amitkmr', passwd = '121258')
     localfile = open( "sandip.wav", 'wb')
     ftp.retrbinary('RETR ' + filename, localfile.write, 1024)
     ftp.quit()
-    if askyesno('play Audio'):
+    if askyesno('play Audio','Do you want to play?'):
         play_audio(filename)
     else:
-        chatBox("Audio save")
+        chatBox("Audio saved")
 
 
 def sendFile():
-    Tk().withdraw()
-    filePath =tkFileDialog.askopenfilename()
-    #print filePath
-    upload_file(ftp_conn,filePath)
-    filename = filePath.split('/')
-    message = "1^"+filename[-1]
-    #print message
-    clientSocket.send(message)
-    chatBox("File sent "+filename[-1])
+    if connection_done :
+        Tk().withdraw()
+        filePath =tkFileDialog.askopenfilename()
+        #print filePath
+        upload_file(ftp_conn,filePath)
+        filename = filePath.split('/')
+        message = "1^"+filename[-1]
+        #print message
+        clientSocket.send(message)
+        chatBox("File sent "+filename[-1])
+    else :
+        chatBox("Connection not yet established")
 
 
 def sendMessage(event):
@@ -145,7 +149,7 @@ def recievedMessage():
                         message = "6^end call"
                         clientSocket.send(message)
                 elif splitMessage[0] == "6":
-                    chatBox("call rejected")
+                    chatBox("Call Rejected")
                 elif splitMessage[0] == "5":
                     call1()
                 else:
@@ -182,12 +186,17 @@ def setIP (event):
     entry2.delete(0, END)
 
 def start_record ():
-    global RECORD_SECONDS
-    RECORD_SECONDS=1
-    try:
-        thread.start_new_thread(record,())
-    except:
-        print "Error: unable to start thread"
+    if connection_done:
+        global RECORD_SECONDS
+        RECORD_SECONDS=1
+        button2.config(state="normal")
+        button1.config(state=DISABLED)
+        try:
+            thread.start_new_thread(record,())
+        except:
+            print "Error: unable to start thread"
+    else :
+        chatBox("Connection not yet established")
 
 def record():
     CHUNK = 1024
@@ -205,7 +214,7 @@ def record():
                     input=True,
                     frames_per_buffer=CHUNK)
 
-    chatBox("Recording")
+    chatBox("* recording")
     frames = []
 
     while RECORD_SECONDS==1:
@@ -228,12 +237,15 @@ def stop_record():
     global RECORD_SECONDS
     RECORD_SECONDS = 0
     chatBox("done recording")
+    button1.config(state="normal")
+    button2.config(state=DISABLED)
     send_audio('output.wav')
 
 def send_audio(audio_file):
     upload_file(ftp_conn,audio_file)
     message = "1^"+audio_file
     clientSocket.send(message)
+
 def play_audio(filename):
     chunk = 1024
 
@@ -262,9 +274,13 @@ def play_audio(filename):
     # cleanup stuff.
     stream.close()    
     p.terminate()
+
 def call():
-    message = "3^incoming call"
-    clientSocket.send(message)
+    if connection_done:
+        message = "3^incoming call"
+        clientSocket.send(message)
+    else :
+        chatBox("Connection not yet established")
 
 
 def call1():
@@ -273,6 +289,8 @@ def call1():
     call_flag = False
     global CALL
     CALL=1
+    button4.config(state="normal")
+    button3.config(state=DISABLED)
     threading.Thread(target=call_send).start()
     threading.Thread(target=call_recv).start()
 
@@ -284,6 +302,8 @@ def end_call1():
     global call_flag
     call_flag = True
     entry1.config(state="normal")
+    button3.config(state="normal")
+    button4.config(state=DISABLED)
 
 def end_call():
     global CALL
@@ -295,6 +315,8 @@ def end_call():
     global call_flag
     call_flag = True
     entry1.config(state="normal")
+    button3.config(state="normal")
+    button4.config(state=DISABLED)
 
 def call_send():
     # s.connect((HOST, PORT))
@@ -376,7 +398,7 @@ def new_chat():
     os.system("python UIClient.py &")
 ########## Socket Connection ###############
 serverName = ''
-serverPort = 12006
+serverPort = 12000
 clientSocket = socket(AF_INET,SOCK_STREAM)
 
 
@@ -394,17 +416,17 @@ frame1.pack(side = BOTTOM, fill = X)
 button = Button(window, text ="Send File",command= sendFile)
 button.pack(side=BOTTOM)
 
-button1 = Button(frame1, text ="record",command= start_record)
+button1 = Button(frame1, text ="record",command= start_record, bg='#63dd7a',state='normal')
 button1.pack(side=LEFT)
 
-button2 = Button(frame1, text ="stop & send",command= stop_record)
+button2 = Button(frame1, text ="stop & send",command= stop_record, bg='#e86f5e',state=DISABLED)
 button2.pack(side=LEFT)
 
-button3 = Button(frame1, text ="Call",command= call, bg = '#29ab22')
-button3.pack(side=RIGHT)
-
-button4 = Button(frame1, text ="End",command= end_call,bg = '#df2620')
+button4 = Button(frame1, text ="End",command= end_call,bg = '#df2620',state=DISABLED)
 button4.pack(side=RIGHT)
+
+button3 = Button(frame1, text ="Call",command= call, bg = '#29ab22',state='normal')
+button3.pack(side=RIGHT)
 
 button5 = Button(frame, text ="New Chat",command= new_chat,bg = '#0b2fee')
 button5.pack(side=TOP,fill=X)

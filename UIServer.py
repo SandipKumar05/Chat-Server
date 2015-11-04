@@ -115,10 +115,10 @@ def retrieveAudio(filename):
     localfile = open( "sandip.wav", 'wb')
     ftp.retrbinary('RETR ' + filename, localfile.write, 1024)
     ftp.quit()
-    if askyesno('play Audio'):
+    if askyesno('play Audio','Do you want to play?'):
         play_audio(filename)
     else:
-        chatBox("Audio save")
+        chatBox("Audio saved")
 
 def sendMessage(event):
     if connection_done :
@@ -187,6 +187,8 @@ def chatBox(text):
 def start_record ():
     global RECORD_SECONDS
     RECORD_SECONDS=1
+    button2.config(state="normal")
+    button1.config(state=DISABLED)
     try:
         thread.start_new_thread(record,())
     except:
@@ -233,6 +235,9 @@ def record():
 def stop_record():
     global RECORD_SECONDS
     RECORD_SECONDS = 0
+    chatBox("done recording")
+    button1.config(state="normal")
+    button2.config(state=DISABLED)
     send_audio('output.wav')
 
 def send_audio(audio_file):
@@ -273,13 +278,15 @@ def call():
     conn.send(message)
     
 def call1():
-	entry1.config(state=DISABLED)
-	global call_flag
-	call_flag = False
-	global CALL
-	CALL =1
-	threading.Thread(target=call_send).start()
-	threading.Thread(target=call_recv).start()
+    entry1.config(state=DISABLED)
+    global call_flag
+    call_flag = False
+    global CALL
+    CALL =1
+    button4.config(state="normal")
+    button3.config(state=DISABLED)
+    threading.Thread(target=call_send).start()
+    threading.Thread(target=call_recv).start()
 
 def end_call1():
     global CALL
@@ -289,17 +296,21 @@ def end_call1():
     global call_flag
     call_flag = True
     entry1.config(state="normal")
+    button3.config(state="normal")
+    button4.config(state=DISABLED)
     # chatBox(call_flag)
 def end_call():
-	global CALL
-	CALL = 0
-	time.sleep(2)
-	message="4^incoming call"
-	conn.send(message)
-	chatBox("* call ended")
-	global call_flag
-	call_flag = True
-	entry1.config(state="normal")
+    global CALL
+    CALL = 0
+    time.sleep(2)
+    message="4^incoming call"
+    conn.send(message)
+    chatBox("* call ended")
+    global call_flag
+    call_flag = True
+    entry1.config(state="normal")
+    button3.config(state="normal")
+    button4.config(state=DISABLED)
 
 def call_send():
 	CHUNK = 1024
@@ -379,7 +390,7 @@ def new_chat():
     os.system("python UIClient.py &")
 ########## Socket Connection ###############
 serverName = ''
-serverPort = 12006
+serverPort = 12000
 
 # s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
 # s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -405,17 +416,17 @@ frame1.pack(side = BOTTOM, fill = X)
 button = Button(window, text ="Send File",command= sendFile)
 button.pack(side=BOTTOM)
 
-button1 = Button(frame1, text ="record",command= start_record)
+button1 = Button(frame1, text ="record",command= start_record, bg='#63dd7a',state='normal')
 button1.pack(side=LEFT)
 
-button2 = Button(frame1, text ="stop & send",command= stop_record)
+button2 = Button(frame1, text ="stop & send",command= stop_record, bg='#e86f5e',state=DISABLED)
 button2.pack(side=LEFT)
 
-button3 = Button(frame1, text ="Call",command= call, bg = '#29ab22')
-button3.pack(side=RIGHT)
-
-button4 = Button(frame1, text ="End",command= end_call,bg = '#df2620')
+button4 = Button(frame1, text ="End",command= end_call,bg = '#df2620',state=DISABLED)
 button4.pack(side=RIGHT)
+
+button3 = Button(frame1, text ="Call",command= call, bg = '#29ab22',state='normal')
+button3.pack(side=RIGHT)
 
 button5 = Button(frame, text ="New Chat",command= new_chat,bg = '#0b2fee')
 button5.pack(side=TOP,fill=X)
