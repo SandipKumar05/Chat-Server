@@ -89,6 +89,17 @@ def retrieveFile(list):
         showwarning('File downloaded', 'you have recieved a file')
     else:
         showinfo('File Download Cancel', 'Download quit')
+def retrieveAudio(filename):
+    ftp = FTP('webhome.cc.iitk.ac.in')
+    ftp.login(user='amitkmr', passwd = '121258')
+    localfile = open( "sandip.wav", 'wb')
+    ftp.retrbinary('RETR ' + filename, localfile.write, 1024)
+    ftp.quit()
+    if askyesno('play Audio'):
+        play_audio(filename)
+    else:
+        chatBox("Audio save")
+
 
 def sendFile():
     Tk().withdraw()
@@ -119,7 +130,7 @@ def recievedMessage():
                 if splitMessage[0]=="1":
                     fileName = splitMessage[1]
                     chatBox("Recieved file :" + fileName)
-                    retrieveFile(fileName)
+                    retrieveAudio(fileName)
                 elif splitMessage[0]=="2":
                     chatBox(splitMessage[1])
                     global connection_done
@@ -194,7 +205,7 @@ def record():
                     input=True,
                     frames_per_buffer=CHUNK)
 
-    chatBox("* Recording")
+    chatBox("Recording")
     frames = []
 
     while RECORD_SECONDS==1:
@@ -216,14 +227,41 @@ def record():
 def stop_record():
     global RECORD_SECONDS
     RECORD_SECONDS = 0
-    chatBox("* done recording")
+    chatBox("done recording")
     send_audio('output.wav')
 
 def send_audio(audio_file):
     upload_file(ftp_conn,audio_file)
     message = "1^"+audio_file
     clientSocket.send(message)
+def play_audio(filename):
+    chunk = 1024
 
+    # open the file for reading.
+    wf = wave.open(filename, 'rb')
+
+    # create an audio object
+    p = pyaudio.PyAudio()
+
+    # open stream based on the wave object which has been input.
+    stream = p.open(format =
+                    p.get_format_from_width(wf.getsampwidth()),
+                    channels = wf.getnchannels(),
+                    rate = wf.getframerate(),
+                    output = True)
+
+    # read data (based on the chunk size)
+    data = wf.readframes(chunk)
+
+    # play stream (looping from beginning of file to the end)
+    while data != '':
+        # writing to the stream is what *actually* plays the sound.
+        stream.write(data)
+        data = wf.readframes(chunk)
+
+    # cleanup stuff.
+    stream.close()    
+    p.terminate()
 def call():
     message = "3^incoming call"
     clientSocket.send(message)
