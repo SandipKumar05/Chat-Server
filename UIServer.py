@@ -11,7 +11,25 @@ import threading
 import socket
 import time
 import os
-# os.system("python UIServer.py &")
+from Crypto.PublicKey import RSA
+from Crypto import Random
+import ast
+
+######### RSA Key Generation ##########
+rng = Random.new().read
+RSAkey = RSA.generate(1024, rng) 
+
+server_privatekey = RSAkey
+server_publickey = RSAkey.publickey()
+
+file = open("server_publickey.txt", "w")
+file.write(server_publickey.exportKey()) 
+file.close()
+
+file = open("client_publickey.txt", "r")
+privatestr = file.read() 
+file.close()
+client_publickey = RSA.importKey(privatestr)
 
 ########### FILE UPLOAD ###########3
 
@@ -26,15 +44,11 @@ SERVER = 'webhome.cc.iitk.ac.in'
 PORT = 21
 BINARY_STORE = True # if False then line store (not valid for binary files (videos, music, photos...))
 CLIENT_ADDRESS = ('','')
-###########################################
+
 
 RECORD_SECONDS = 1
 CALL = 1
 connection_done = False  # to check if connection is established or not
-
-
-def print_line(result):
-    print(result)
 
 def connect_ftp():
     #Connect to the server
@@ -73,6 +87,42 @@ def upload_file(ftp_connetion, upload_file_path):
 #Take all the files and upload all
 ftp_conn = connect_ftp()
 
+def secure_sendFile():
+    if connection_done :
+        Tk().withdraw()
+        filePath =tkFileDialog.askopenfilename()
+        filename = filePath.split('/')
+        file_extension = filename[-1].split('.')
+        data = open(filePath, "r").read()
+        enc_data = client_publickey.encrypt(data, 32)
+        message = ""
+        if len(file_extension) == 1:
+            message = "9^"+str(enc_data)
+        else:
+            message = "9^"+str(enc_data)+"^"+file_extension[1]
+        conn.send(message)
+        
+        chatBox("File sent "+filename[-1])
+    else :
+        chatBox("Connection not yet established")
+
+def secure_recvFile(encrypt_msg,file_extension):
+    Tk().withdraw()
+    if askyesno('Download File', 'Yes you really want to Download file'):
+        save_path = ''
+        if file_extension == '':
+            save_path = file_save()
+        else:
+            save_path = file_save()+'.'+file_extension
+        data = server_privatekey.decrypt(ast.literal_eval(encrypt_msg))
+        file = open(save_path, "w")
+        file.write(str(data)) 
+        file.close() 
+        showwarning('File downloaded', 'you have recieved a file')
+    else:
+        showinfo('File Download Cancel', 'Download quit')
+
+
 def file_save():
     f = tkFileDialog.asksaveasfilename()
     if f is None: # asksaveasfile return `None` if dialog closed with "cancel".
@@ -82,7 +132,7 @@ def file_save():
 def retrieveFile(list):
     Tk().withdraw()
     file_extension = list.split('.')
-    if askyesno('Download File', 'Yes you really want to Download file'):
+    if askyesno('Download File', 'DO you really want to Download file?'):
         ftp = FTP('webhome.cc.iitk.ac.in')
         ftp.login(user='amitkmr', passwd = '121258')
         filename =list
@@ -94,20 +144,10 @@ def retrieveFile(list):
         localfile = open( save_path, 'wb')
         ftp.retrbinary('RETR ' + filename, localfile.write, 1024)
         ftp.quit()
-        showwarning('File downloaded', 'you have recieved a file')
+        showwarning('File downloaded', 'you have received a file')
     else:
         showinfo('File Download Cancel', 'Download quit')
 
-def sendFile():
-    Tk().withdraw()
-    filePath =tkFileDialog.askopenfilename()
-    #print filePath
-    upload_file(ftp_conn,filePath)
-    filename = filePath.split('/')
-    message = "1^"+filename[-1]
-    # print message
-    conn.send(message)
-    chatBox("File sent "+filename[-1])
 
 def retrieveAudio(filename):
     ftp = FTP('webhome.cc.iitk.ac.in')
@@ -120,6 +160,18 @@ def retrieveAudio(filename):
     else:
         chatBox("Audio saved")
 
+def sendFile():
+    if connection_done:
+        Tk().withdraw()
+        filePath =tkFileDialog.askopenfilename()
+        upload_file(ftp_conn,filePath)
+        filename = filePath.split('/')
+        message = "1^"+filename[-1]
+        conn.send(message)
+        chatBox("File sent "+filename[-1])
+    else:
+        chatBox("Connection not yet established")
+
 def sendMessage(event):
     if connection_done :
         message = entry1.get()
@@ -128,22 +180,25 @@ def sendMessage(event):
     else :
         chatBox("Connection not yet established")
 
-def recievedMessage():
+def receivedMessage():
     while 1:
         global CLIENT_ADDRESS
         if call_flag:
-	        message = conn.recv(1024)
-	        splitMessage = message.split('^')
-	        if splitMessage[0]=="1":
+            message = conn.recv(1024)
+            splitMessage = message.split('^')
+            if splitMessage[0]=="7":
+                showinfo('Chat Disconnected', 'Chat Disconnected')
+                global connection_done
+                connection_done = False
+                window.destroy()
+            elif splitMessage[0]=="1":
 	            fileName = splitMessage[1]
-	            chatBox("Recieved file :" + fileName)
-	            retrieveAudio(fileName)
-	        elif splitMessage[0]=="2":
+	            chatBox("received file :" + fileName)
+	            retrieveFile(fileName)
+            elif splitMessage[0]=="2":
 	            chatBox(splitMessage[1])
-	            global connection_done
 	            connection_done = True
-	            # entry2.config(state=DISABLED)
-	        elif splitMessage[0]=="3":
+            elif splitMessage[0]=="3":
 	            if askyesno('Incoming Call', 'Do you want to receive?'):
 	            	message = "5^accept call"
 	            	conn.send(message)
@@ -151,11 +206,17 @@ def recievedMessage():
 	            else:
 	                message = "6^end call"
 	                conn.send(message)
-	        elif splitMessage[0]=="5":
+            elif splitMessage[0]=="5":
 	        	    call1()
-	       	elif splitMessage[0]=="6":
+            elif splitMessage[0]=="6":
 	       		chatBox("Call Rejected")
-	        else:
+            elif splitMessage[0]=="8":
+                fileName = splitMessage[1]
+                retrieveAudio(fileName)
+            elif splitMessage[0]=="9":
+                chatBox("Received file")
+                secure_recvFile(splitMessage[1],splitMessage[2])
+            else:
 	        	if message != '':
 	        		chatBox("He: " + message)
 
@@ -185,14 +246,17 @@ def chatBox(text):
 #     entry2.delete(0, END)
 
 def start_record ():
-    global RECORD_SECONDS
-    RECORD_SECONDS=1
-    button2.config(state="normal")
-    button1.config(state=DISABLED)
-    try:
-        thread.start_new_thread(record,())
-    except:
-        print "Error: unable to start thread"
+    if connection_done:
+        global RECORD_SECONDS
+        RECORD_SECONDS=1
+        button2.config(state="normal")
+        button1.config(state=DISABLED)
+        try:
+            thread.start_new_thread(record,())
+        except:
+            print "Error: unable to start thread"
+    else:
+        chatBox("Connection not yet established")
 
 def record():
     CHUNK = 1024
@@ -210,7 +274,7 @@ def record():
                     input=True,
                     frames_per_buffer=CHUNK)
 
-    print("* recording")
+    chatBox("* recording")
 
     frames = []
 
@@ -218,7 +282,6 @@ def record():
         data = stream.read(CHUNK)
         frames.append(data)
 
-    print("* done recording")
 
     stream.stop_stream()
     stream.close()
@@ -242,7 +305,7 @@ def stop_record():
 
 def send_audio(audio_file):
     upload_file(ftp_conn,audio_file)
-    message = "1^"+audio_file
+    message = "8^"+audio_file
     conn.send(message)
 
 def play_audio(filename):
@@ -274,8 +337,11 @@ def play_audio(filename):
     p.terminate()
 
 def call():
-    message = "3^incoming call"
-    conn.send(message)
+    if connection_done:
+        message = "3^incoming call"
+        conn.send(message)
+    else:
+        chatBox("Connection not yet established")
     
 def call1():
     entry1.config(state=DISABLED)
@@ -291,14 +357,13 @@ def call1():
 def end_call1():
     global CALL
     CALL = 0
-    # time.sleep(2)
     chatBox("* call ended")
     global call_flag
     call_flag = True
     entry1.config(state="normal")
     button3.config(state="normal")
     button4.config(state=DISABLED)
-    # chatBox(call_flag)
+
 def end_call():
     global CALL
     CALL = 0
@@ -388,6 +453,20 @@ def call_recv():
 
 def new_chat():
     os.system("python UIClient.py &")
+
+def on_closing():
+    if askokcancel("Quit", "Do you want to quit?"):
+        global connection_done 
+        if connection_done:
+            message="7^chat end"
+            conn.send(message)
+            connection_done = False
+            window.destroy()
+            s.close()
+        else:
+            connection_done = False
+            window.destroy()
+
 ########## Socket Connection ###############
 serverName = ''
 serverPort = 12000
@@ -412,6 +491,9 @@ frame.pack(side = TOP, fill = X)
 
 frame1 = Frame(window)
 frame1.pack(side = BOTTOM, fill = X)
+
+button6 = Button(window, text ="Secure Send File",command= secure_sendFile)
+button6.pack(side=BOTTOM)
 
 button = Button(window, text ="Send File",command= sendFile)
 button.pack(side=BOTTOM)
@@ -440,7 +522,7 @@ scrollbar = Scrollbar(window)
 scrollbar.pack(side=RIGHT, fill=Y)
 listbox = Listbox(window, width = 50,yscrollcommand=scrollbar.set)
 
-
+window.protocol("WM_DELETE_WINDOW", on_closing)
 
 
 # label1 = Label( frame, text="Connect to IP address : " , bg = "#a3dfdd" )
@@ -451,9 +533,9 @@ listbox = Listbox(window, width = 50,yscrollcommand=scrollbar.set)
 # entry2.pack(side=LEFT)
 # entry2.bind("<Return>", setIP)
 
-############### Start recieved message as thread ########3
+############### Start received message as thread ########3
 try:
-   thread.start_new_thread(recievedMessage,())
+   thread.start_new_thread(receivedMessage,())
 except:
    print "Error: unable to start thread"
 frame.pack()
