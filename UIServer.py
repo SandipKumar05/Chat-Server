@@ -11,25 +11,20 @@ import threading
 import socket
 import time
 import os
+
+from Crypto.Hash import MD5
 from Crypto.PublicKey import RSA
-from Crypto import Random
-import ast
+from Crypto.Util import randpool
 
-######### RSA Key Generation ##########
-rng = Random.new().read
-RSAkey = RSA.generate(1024, rng) 
+import pickle
 
-server_privatekey = RSAkey
-server_publickey = RSAkey.publickey()
 
-file = open("server_publickey.txt", "w")
-file.write(server_publickey.exportKey()) 
-file.close()
 
-file = open("client_publickey.txt", "r")
-privatestr = file.read() 
-file.close()
-client_publickey = RSA.importKey(privatestr)
+#generate the RSA key
+num = randpool.RandomPool()
+RSAKey = RSA.generate(2048, num.get_bytes)
+ 
+RSAPubKey = RSAKey.publickey()
 
 ########### FILE UPLOAD ###########3
 
@@ -94,31 +89,32 @@ def secure_sendFile():
         filename = filePath.split('/')
         file_extension = filename[-1].split('.')
         data = open(filePath, "r").read()
-        enc_data = client_publickey.encrypt(data, 32)
+        enc_data = publickey.encrypt(data, 32)
         message = ""
         if len(file_extension) == 1:
-            message = "9^"+str(enc_data)
+            message = "9^"
         else:
-            message = "9^"+str(enc_data)+"^"+file_extension[1]
-        conn.send(message)
-        
+            message = "9^"+file_extension[1]
+        clientSocket.send(message)
+        clientSocket.sendall(pickle.dumps(enc_data))
+        # secure_recvFile(str(enc_data),file_extension[1])
         chatBox("File sent "+filename[-1])
     else :
         chatBox("Connection not yet established")
 
-def secure_recvFile(encrypt_msg,file_extension):
+def secure_recvFile(rcstring,file_extension):
     Tk().withdraw()
-    if askyesno('Download File', 'Yes you really want to Download file'):
+    if askyesno('Download File', 'Do you really want to Download file?'):
         save_path = ''
         if file_extension == '':
             save_path = file_save()
         else:
             save_path = file_save()+'.'+file_extension
-        data = server_privatekey.decrypt(ast.literal_eval(encrypt_msg))
+        encrypt_msg = pickle.loads(rcstring)
         file = open(save_path, "w")
-        file.write(str(data)) 
+        file.write(RSAKey.decrypt(encrypt_msg)) 
         file.close() 
-        showwarning('File downloaded', 'you have recieved a file')
+        showwarning('File downloaded', 'you have received a file')
     else:
         showinfo('File Download Cancel', 'Download quit')
 
@@ -156,7 +152,7 @@ def retrieveAudio(filename):
     ftp.retrbinary('RETR ' + filename, localfile.write, 1024)
     ftp.quit()
     if askyesno('play Audio','Do you want to play?'):
-        play_audio(filename)
+        play_audio("sandip.wav")
     else:
         chatBox("Audio saved")
 
@@ -193,7 +189,7 @@ def receivedMessage():
                 window.destroy()
             elif splitMessage[0]=="1":
 	            fileName = splitMessage[1]
-	            chatBox("received file :" + fileName)
+	            chatBox("Received file")
 	            retrieveFile(fileName)
             elif splitMessage[0]=="2":
 	            chatBox(splitMessage[1])
@@ -214,8 +210,11 @@ def receivedMessage():
                 fileName = splitMessage[1]
                 retrieveAudio(fileName)
             elif splitMessage[0]=="9":
-                chatBox("Received file")
-                secure_recvFile(splitMessage[1],splitMessage[2])
+                rcstring = ''
+                buf = conn.recv(1024)
+                rcstring += buf
+                chatBox("Recieved file") 
+                secure_recvFile(rcstring,splitMessage[1])
             else:
 	        	if message != '':
 	        		chatBox("He: " + message)
@@ -298,15 +297,18 @@ def record():
 def stop_record():
     global RECORD_SECONDS
     RECORD_SECONDS = 0
-    chatBox("done recording")
+    time.sleep(1)
+    chatBox("* done recording")
     button1.config(state="normal")
     button2.config(state=DISABLED)
     send_audio('output.wav')
 
 def send_audio(audio_file):
     upload_file(ftp_conn,audio_file)
+    time.sleep(1)
     message = "8^"+audio_file
     conn.send(message)
+    os.remove("output.wav")
 
 def play_audio(filename):
     chunk = 1024
@@ -469,19 +471,13 @@ def on_closing():
 
 ########## Socket Connection ###############
 serverName = ''
-serverPort = 12000
-
-# s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-# s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# s.bind(('', serverPort))
-# s.listen(1)
-# conn, addr = s.accept()
-# conn, addr = s.accept()
+serverPort = 12009
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.bind(('', serverPort))
 s.listen(1)
 conn, addr = s.accept()
+conn.send(pickle.dumps(RSAPubKey))
 
 window = Tk()
 window.title("chatWindow")
