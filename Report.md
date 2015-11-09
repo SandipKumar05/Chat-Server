@@ -18,3 +18,6 @@ Work flow of the Program:
 6. File are sent using FTP. First they uploaded on a common server and message is sent regarding the same
 if other peer say yes for the download FTP connection is set up and file is downloaded.
 7. Secure file transfer preceded by step exchanging Public key of RSA encryption. File is encrypted and then sent.    
+
+## Result
+We have full working program supporting all the feature discussed in Methodology. You need python installed on your computer. Project can be download from https://github.com/sandipgupta/Chat-Server 
