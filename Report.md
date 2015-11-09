@@ -17,4 +17,4 @@ Work flow of the Program:
 5. Voice message are recorded and converted in to MP3 format and sent to other peer.
 6. File are sent using FTP. First they uploaded on a common server and message is sent regarding the same
 if other peer say yes for the download FTP connection is set up and file is downloaded.
-7. Secure file transfer preceded by step exchanging Public key of RSA encryption. File is encrypted and then sent.     
+7. Secure file transfer preceded by step exchanging Public key of RSA encryption. File is encrypted and then sent.    
