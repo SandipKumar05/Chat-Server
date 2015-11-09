@@ -9,6 +9,7 @@ in the program.
 ## Methodology
 We have implemented this program in python using a number of libraries such as Tkinter for GUI, socket, pyaudio for voice support, and socket for network  programming.
 Work flow of the Program:
+
 1. Server program is started that create a socket with a port, ready to listen to a client.
 2. Client program create a socket connection and send message to the advertise IP address of Server.
 3. Server receive  the Client message reply to the client.
