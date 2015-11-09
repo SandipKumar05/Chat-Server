@@ -17,6 +17,14 @@ from Crypto.Util import randpool
 import pickle
 
 
+
+#generate the RSA key
+num = randpool.RandomPool()
+RSAKey = RSA.generate(2048, num.get_bytes)
+ 
+RSAPubKey = RSAKey.publickey()
+
+
 ########### FILE UPLOAD ###########3
 
 ########### MODIFY ########################
@@ -35,6 +43,8 @@ RECORD_SECONDS = 1
 CALL = 0
 connection_done = False  # to check if connection is established or not
 call_flag = True
+
+
 
 def connect_ftp():
     #Connect to the server
@@ -60,7 +70,6 @@ def upload_file(ftp_connetion, upload_file_path):
         if BINARY_STORE:
             ftp_connetion.storbinary('STOR '+ final_file_name, upload_file)
         else:
-            #ftp_connetion.storlines('STOR ' + final_file_name, upload_file, print_line)
             ftp_connetion.storlines('STOR '+ final_file_name, upload_file)
 
         print('Upload finished.')
@@ -70,7 +79,6 @@ def upload_file(ftp_connetion, upload_file_path):
         print ("No such file or directory... passing to next file")
 
 
-#Take all the files and upload all
 ftp_conn = connect_ftp()
 
 def secure_sendFile():
@@ -198,12 +206,13 @@ def receivedMessage():
                     showinfo('Chat Disconnected', 'Chat Disconnected')
                     connection_done = False
                     window.destroy()
+                    clientSocket.close()
                 elif splitMessage[0]=="8":
                     fileName = splitMessage[1]
                     retrieveAudio(fileName)
                 elif splitMessage[0]=="9":
                     rcstring = ''
-                    buf = conn.recv(1024)
+                    buf = clientSocket.recv(1024)
                     rcstring += buf
                     chatBox("Recieved file") 
                     secure_recvFile(rcstring,splitMessage[1])
@@ -231,6 +240,8 @@ def setIP (event):
         clientSocket.connect(SERVER_ADDRESS)
         rcstring = clientSocket.recv(2048)
         publickey = pickle.loads(rcstring)
+        clientSocket.send(pickle.dumps(RSAPubKey))
+        time.sleep(0.2)
         message = "2^Someone has connected to you"
         clientSocket.send(message)
         connection_done = True
@@ -471,10 +482,11 @@ def on_closing():
         else:
             connection_done = False
             window.destroy()
+            clientSocket.close()
 
 ########## Socket Connection ###############
 serverName = ''
-serverPort = 12009
+serverPort = 12000
 clientSocket = socket(AF_INET,SOCK_STREAM)
 
 
@@ -531,7 +543,6 @@ entry2 = Entry(frame,text = ipaddress,width=30)
 entry2.pack(side=LEFT)
 entry2.bind("<Return>", setIP)
 
-############### Start received message as thread ########3
 
 frame.pack()
 

@@ -69,7 +69,6 @@ def upload_file(ftp_connetion, upload_file_path):
         if BINARY_STORE:
             ftp_connetion.storbinary('STOR '+ final_file_name, upload_file)
         else:
-            #ftp_connetion.storlines('STOR ' + final_file_name, upload_file, print_line)
             ftp_connetion.storlines('STOR '+ final_file_name, upload_file)
 
         print('Upload finished.')
@@ -78,8 +77,6 @@ def upload_file(ftp_connetion, upload_file_path):
     except IOError:
         print ("No such file or directory... passing to next file")
 
-
-#Take all the files and upload all
 ftp_conn = connect_ftp()
 
 def secure_sendFile():
@@ -95,8 +92,8 @@ def secure_sendFile():
             message = "9^"
         else:
             message = "9^"+file_extension[1]
-        clientSocket.send(message)
-        clientSocket.sendall(pickle.dumps(enc_data))
+        conn.send(message)
+        conn.sendall(pickle.dumps(enc_data))
         # secure_recvFile(str(enc_data),file_extension[1])
         chatBox("File sent "+filename[-1])
     else :
@@ -176,7 +173,7 @@ def sendMessage(event):
     else :
         chatBox("Connection not yet established")
 
-def receivedMessage():
+def receivedMessage(conn):
     while 1:
         global CLIENT_ADDRESS
         if call_flag:
@@ -187,6 +184,8 @@ def receivedMessage():
                 global connection_done
                 connection_done = False
                 window.destroy()
+                s.close()
+                os.system("fuser -k 12000/tcp")
             elif splitMessage[0]=="1":
 	            fileName = splitMessage[1]
 	            chatBox("Received file")
@@ -213,7 +212,7 @@ def receivedMessage():
                 rcstring = ''
                 buf = conn.recv(1024)
                 rcstring += buf
-                chatBox("Recieved file") 
+                chatBox("Received file") 
                 secure_recvFile(rcstring,splitMessage[1])
             else:
 	        	if message != '':
@@ -227,22 +226,6 @@ def chatBox(text):
     entry1.delete(0, END)
     return
 
-# def setIP (event):
-#     ipaddress = entry2.get()
-#     global serverName
-#     global connection_done
-#     global CLIENT_ADDRESS
-#     serverName = ipaddress
-#     CLIENT_ADDRESS = (serverName,serverPort)
-#     try:
-#         conn.connect(CLIENT_ADDRESS)
-#         message = "2^Someone has connected to you"
-#         conn.send(message)
-#         connection_done = True
-#         chatBox("Connected to " + ipaddress)
-#     except Exception, e :
-#         chatBox("Unknown service")
-#     entry2.delete(0, END)
 
 def start_record ():
     if connection_done:
@@ -465,19 +448,31 @@ def on_closing():
             connection_done = False
             window.destroy()
             s.close()
+            os.system("fuser -k 12000/tcp")
         else:
             connection_done = False
             window.destroy()
+            s.close()
+            os.system("fuser -k 12000/tcp")
+
+
+
+
+
+
 
 ########## Socket Connection ###############
 serverName = ''
-serverPort = 12009
+serverPort = 12000
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 s.bind(('', serverPort))
-s.listen(1)
-conn, addr = s.accept()
-conn.send(pickle.dumps(RSAPubKey))
+s.listen(50)
+
+
+
+
 
 window = Tk()
 window.title("chatWindow")
@@ -518,22 +513,24 @@ scrollbar = Scrollbar(window)
 scrollbar.pack(side=RIGHT, fill=Y)
 listbox = Listbox(window, width = 50,yscrollcommand=scrollbar.set)
 
+
 window.protocol("WM_DELETE_WINDOW", on_closing)
 
-
-# label1 = Label( frame, text="Connect to IP address : " , bg = "#a3dfdd" )
-# label1.pack(fill = X, side = LEFT, ipadx=20)
-
-# ipaddress = StringVar()
-# entry2 = Entry(frame,text = ipaddress,width=30)
-# entry2.pack(side=LEFT)
-# entry2.bind("<Return>", setIP)
-
-############### Start received message as thread ########3
-try:
-   thread.start_new_thread(receivedMessage,())
-except:
-   print "Error: unable to start thread"
 frame.pack()
 
+
+conn, addr = s.accept()
+conn.send(pickle.dumps(RSAPubKey))
+rcstring = conn.recv(2048)
+publickey = pickle.loads(rcstring)
+
+try:
+       thread.start_new_thread(receivedMessage,(conn,))
+except:
+       print "Error: unable to start thread"
+
 window.mainloop()
+
+
+
+
