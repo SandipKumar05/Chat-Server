@@ -170,6 +170,8 @@ def sendFile():
 def sendMessage(event):
     if connection_done :
         message = entry1.get()
+        # t = time.time()
+        # print("%.6f" % t)
         clientSocket.send(message)
         chatBox("You: "+message)
     else :
@@ -513,6 +515,9 @@ button1.pack(side=LEFT)
 
 button2 = Button(frame1, text ="stop & send",command= stop_record, bg='#e86f5e',state=DISABLED)
 button2.pack(side=LEFT)
+
+button3 = Button(frame1, text ="Record-Call",bg = '#5d37f9',state='normal')
+button3.pack(side=RIGHT) 
 
 button4 = Button(frame1, text ="End",command= end_call,bg = '#df2620',state=DISABLED)
 button4.pack(side=RIGHT)

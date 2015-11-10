@@ -178,6 +178,8 @@ def receivedMessage(conn):
         global CLIENT_ADDRESS
         if call_flag:
             message = conn.recv(1024)
+            # t=time.time()
+            # print("%.6f" % t)
             splitMessage = message.split('^')
             if splitMessage[0]=="7":
                 showinfo('Chat Disconnected', 'Chat Disconnected')
@@ -495,11 +497,15 @@ button1.pack(side=LEFT)
 button2 = Button(frame1, text ="stop & send",command= stop_record, bg='#e86f5e',state=DISABLED)
 button2.pack(side=LEFT)
 
+button3 = Button(frame1, text ="Record-Call",bg = '#5d37f9',state='normal')
+button3.pack(side=RIGHT) 
+
 button4 = Button(frame1, text ="End",command= end_call,bg = '#df2620',state=DISABLED)
 button4.pack(side=RIGHT)
 
 button3 = Button(frame1, text ="Call",command= call, bg = '#29ab22',state='normal')
 button3.pack(side=RIGHT)
+
 
 button5 = Button(frame, text ="New Chat",command= new_chat,bg = '#0b2fee')
 button5.pack(side=TOP,fill=X)
